@@ -1,0 +1,92 @@
+//the regfile for all game information
+module game_Regfiles (
+    input clk,  // clock
+    input rst,  // reset
+    input write_address[4], // write address
+    input we, // write enable
+    input data[16], // data in
+    
+    
+    input read_address_a[4], //address port a 
+    input read_address_b[4], //address port b
+    output out_a[16], //read port a
+    output out_b[16], //read port b
+    
+    //debug
+    output out[16],
+    output all_scores[32],
+    output all_buttons[4],
+    output counter_out[16]
+
+  ) 
+
+{
+  .clk(clk){
+    .rst(rst){
+      dff score[16]; //0x0
+      dff mole_buttons[16]; //0x1
+      dff mole_old_locations[16]; //0x2
+      dff mole_new_locations[16]; //0x3
+      dff number_of_moles[16]; //0x4
+      dff current_level[16]; //0x5
+      dff state_of_moles[16]; //0x6
+      dff timer[16]; //0x7
+      dff temp_var[16]; //0x8 to 0xF
+    }
+  }
+
+  always {
+  
+    //write port
+    if (we){
+      case(write_address){
+        b0000 : score.d = data;
+        b0001 : mole_buttons.d = data;
+        b0010 : mole_old_locations.d = data;
+        b0011 : mole_new_locations.d = data;
+        b0100 : number_of_moles.d = data;
+        b0101 : current_level.d = data;
+        b0110 : state_of_moles.d = data;
+        b0111 : timer.d = data;
+        b1111 : temp_var.d = data;
+      }
+    }
+    
+      
+    //read port a
+    case(read_address_a){
+        b0000 : out_a = score.q;
+        b0001 : out_a = mole_buttons.q;
+        b0010 : out_a = mole_old_locations.q;
+        b0011 : out_a = mole_new_locations.q;
+        b0100 : out_a = number_of_moles.q;
+        b0101 : out_a = current_level.q;
+        b0110 : out_a = state_of_moles.q;
+        b0111 : out_a = timer.q;
+        b1111 : out_a = temp_var.q;
+        default : out_a = 0;
+    }
+    
+    //read port b
+    case(read_address_b){
+        b0000 : out_b = score.q;
+        b0001 : out_b = mole_buttons.q;
+        b0010 : out_b = mole_old_locations.q;
+        b0011 : out_b = mole_new_locations.q;
+        b0100 : out_b = number_of_moles.q;
+        b0101 : out_b = current_level.q;
+        b0110 : out_b = state_of_moles.q;
+        b0111 : out_b = timer.q;
+        b1111 : out_b = temp_var.q;
+        default : out_b = 0;
+    }
+    
+    //For debugging
+    all_scores[15:0] = score.q;
+    //all_scores[31:16] = p2_score.q;
+    all_buttons[1:0] = mole_buttons.q[1:0];
+    all_buttons[3:2] = mole_buttons.q[3:2];
+    out = timer.q;
+    counter_out = state_of_moles.q;
+  }
+}

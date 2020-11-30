@@ -1,0 +1,17 @@
+module compare (
+    input z,
+    input v,
+    input n,
+    input alufn[4],
+    output out[16]
+) {
+    always {
+        out = 16b0;
+        case (alufn[3:0]) {
+            b0011: out[0] = z;              // CMPEQ, out = z
+            b0101: out[0] = n ^ v;          // CMPLT, n ^ v
+            b0111: out[0] = z | (n ^ v);     // CMPLE, z | (n ^ v)
+            default: out[0] = 0;
+        }
+    }
+}
