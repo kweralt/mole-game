@@ -1,7 +1,17 @@
 module game_Beta (
     input clk,  // clock
     input rst,  // reset
-    input players_mole_buttons, // 9 buttons
+
+    // inputs from each button
+    input hole1_button,
+    input hole2_button,
+    input hole3_button,
+    input hole4_button,
+    input hole5_button,
+    input hole6_button,
+    input hole7_button,
+    input hole8_button,
+    input hole9_button,
     
     output debug_out[16],
     output total_score[16], // p1_out
@@ -15,6 +25,7 @@ module game_Beta (
   //temp variables
   sig inputAlu_a[16];
   sig inputAlu_b[16];
+  sig input_pressed_button[16]; // location of pressed button
     
   alu16bit game_alu;
     
@@ -42,8 +53,28 @@ module game_Beta (
     game_controlunit.increase_counter = edge_detector_variableCounter.out;
     game_controlunit.decrease_timer = game_timer_detector.out;
     
-    //pass button press signal to CU unit
-    game_controlunit.mole_buttons = players_mole_buttons;
+    // If/else to determine location of pressed button
+    if (hole1_button){
+      input_pressed_button = 1;
+    } else if (hole2_button){
+      input_pressed_button = 2;
+    } else if (hole3_button){
+      input_pressed_button = 3;
+    } else if (hole4_button){
+      input_pressed_button = 4;
+    } else if (hole5_button){
+      input_pressed_button = 5;
+    } else if (hole6_button){
+      input_pressed_button = 6;
+    } else if (hole7_button){
+      input_pressed_button = 7;
+    } else if (hole8_button){
+      input_pressed_button = 8;
+    } else if (hole9_button){
+      input_pressed_button = 9;
+    } else {
+      input_pressed_button = 0;
+    }
     
     //output of CU to increase 7segment
     decimal_counter_increase = game_controlunit.decimal_counter_increase;
@@ -62,9 +93,10 @@ module game_Beta (
     //asel mux
     case(game_controlunit.asel){
       b00  : inputAlu_a = players.out_a;
-      b01  : inputAlu_a = 1; 
+      b01  : inputAlu_a = 0;
+      b10  : inputAlu_a = 1; 
       b11  : inputAlu_a = 30;
-      default : //b10 unused
+      default :
           inputAlu_a = 0;
     }
     
@@ -72,8 +104,8 @@ module game_Beta (
     case(game_controlunit.bsel){
       b00 : inputAlu_b = players.out_b;
       b01 : inputAlu_b = 1;
-      b11 : inputAlu_b = 3;
-      b10 : inputAlu_b = 0;
+      b11 : inputAlu_b = 10;
+      b10 : inputAlu_b = 20;
       default: //necessary to init
           inputAlu_b = 0;
       
@@ -87,9 +119,9 @@ module game_Beta (
     
     //wdsel mux
     case (game_controlunit.alu_out_sel){
-      b01 : players.data = b1111111111111111;
-      b10 : players.data = b0000000000001111;
-      b11 : players.data = 0;
+      b01 : players.data = 0;
+      b10 : players.data = input_pressed_button;
+      b11 : players.data = b1111111111111111;
       default : //b00
           players.data = game_alu.o;
     }

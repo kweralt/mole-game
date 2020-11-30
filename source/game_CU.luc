@@ -5,7 +5,7 @@ module game_CU (
     input decrease_timer,
     input regfile_datain[16], //direct reading of regfile data from read_address_b
     
-    input mole_buttons,
+    // input mole_buttons,
     
     output alufn[6],
     output asel[3],
