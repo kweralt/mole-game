@@ -127,6 +127,201 @@ always {
         we_regfile = ;
         regfile_write_address = b;
         game_fsm.d = game_fsm. ;
+        
+      game_fsm.CHECK_WHACKED_LEVEL:
+        alufn = b110011; // CMPEQ
+        regfile_read_address_a = b0110; // ra = 0x6
+        regfile_read_address_b = b0101; // rb = 0x5
+        asel = b00;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_write_address = b1110;  // rc = 0xE
+        game_fsm.d = game_fsm.BRANCH_WHACKED;
+        
+      game_fsm.BRANCH_WHACKED:
+        we_regfile = b0;
+        regfile_read_address_b = b1110; // rb = 0xE
+          
+        // whacked == level
+        if(regfile_datain[0]) {   
+          game_fsm.d = game_fsm.INC_SCORE;
+          } 
+            
+        // whacked != level
+        else {
+          game_fsm.d = game_fsm.IDLE;
+          }
+          
+      game_fsm.INC_SCORE:    
+        alufn = b011010; // ADD
+        regfile_read_address_a = b0000; // ra = 0x0
+        asel = b00;
+        bsel = b01;
+        we_regfile = b1;
+        regfile_write_address = b0000; // rc = 0x0
+        game_fsm.d = game_fsm.CHECK_SCORE_30;
+         
+      game_fsm.CHECK_BUTTON_ADDRESS:
+        // NANI
+        game_fsm.d = game_fsm.BRANCH_BUTTON_ADDRESS;
+          
+      game_fsm.BRANCH_BUTTON_ADDRESS:
+        we_regfile = b0;
+        regfile_read_address_b = b1110;
+          
+        // go to whacked += 1  
+        if(regfile_datain[0]) {
+          game_fsm.d = game_fsm.INC_WHACKED;
+          }
+        
+        // address of button pressed != generated address
+        else {
+          game_fsm.d = game_fsm.LOSE;
+          }
+          
+      game_fsm.INC_WHACKED:
+        alufn = b011010; // ADD
+        regfile_read_address_b = b0110; // rb = 0x6
+        asel = b10;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_write_address = b0110; // rc = 0x6
+        game_fsm.d = game_fsm.CHECK_WHACKED_LEVEL;
+      
+      game_fsm.LOSE:
+        // what signal here?
+        
+          
+      game_fsm.IDLE:
+        // what if else condition to go to CHECK_BUTTON_ADDRESS/CHECK_TIMER_MT_0
+          
+      game_fsm.CHECK_TIMER_MT_0:
+        alufn = b110101; // CMPLT
+        regfile_read_address_b = b0111; // 0x7
+        asel = b01;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_write_address = b1111; // 0xF
+        game_fsm.d = game_fsm.BRANCH_TIMER;
+          
+      game_fsm.BRANCH_TIMER:
+        regfile_read_address_b = b1111; // 0xF
+        we_regfile = b0;
+        
+        // timer > 0
+        if(regfile_datain[0]){
+          game_fsm.d = game_fsm.DEC_TIMER;
+          }
+          
+        // timer == 0
+        else {
+          game_fsm.d = game_fsm.LOSE;
+          }
+          
+      game_fsm.DEC_TIMER:
+        alufn = b000001; // SUB
+        regfile_read_address_a = b0111; // 0x7
+        asel = b00;
+        bsel = b01;
+        regfile_write_address = b0111; //0x7
+        we_regfile = b1;
+        game_fsm.d = game_fsm.IDLE;
+          
+      game_fsm.START_TIMER:
+        // JUST START USING THE CODE LMAO
+        game_fsm.d = game_fsm.IDLE;
+      
+      game_fsm.MOLES_APPEAR:
+        // HOW JUST CODE IT
+        game_fsm.d = game_fsm.START_TIMER;
+          
+      game_fsm.SET_WHACKED:
+        we_regfile = b1;
+        regfile_write_address = b0110; // rc = 0x6
+        alu_out_sel = b01;
+        game_fsm.d = game_fsm.MOLES_APPEAR;
+          
+      game_fsm.BRANCH_MOLE_0:
+        regfile_read_address_b = b1111; // 0xF
+        we_regfile = b0;
+        
+        // moles > 0
+        if(regfile_datain[0]){
+          game_fsm.d = game_fsm.SET_NEW_LOCATIONS;
+          }
+          
+        // moles == 0
+        else {
+          game_fsm.d = game_fsm.SET_WHACKED;
+          }
+          
+      game_fsm.SET_NEW_LOCATIONS:
+        alufn = b011010; // ADD
+        regfile_read_address_b = b1110; // rb = 0xE
+        asel = b01;
+        bsel = b00;
+        regfile_write_address = b0011; // rc = 0x3
+        game_fsm.d = game_fsm.CHECK_NEW_LOCATIONS_OLD;
+          
+      game_fsm.CHECK_NEW_LOCATIONS_OLD:
+        alufn = b110011; // CMPEQ
+        regfile_read_address_a = b1100; // ra = 0xC
+        regfile_read_address_b = b1101; // rb = 0xD
+        asel = b00;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_write_address = b1011; // rc = 0xB
+        game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_OLD;
+          
+      game_fsm.BRANCH_NEW_LOCATIONS_OLD:
+        we_regfile = b0;
+        regfile_read_address_b = b1011; // rb = 0xB
+          
+        // new location == old location
+        if(regfile_datain[0]){
+          game_fsm.d = game_fsm.SET_NEW_LOCATIONS;
+          }
+          
+        // new location != old location
+        else {
+          game_fsm.d = game_fsm.CHECK_NEW_LOCATIONS_REPEATED;
+          }
+          
+      game_fsm.CHECK_NEW_LOCATIONS_REPEATED:
+        // Just use a for/while loop to compare over the locations in the same 16-bit thingy
+        game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_REPEATED;
+          
+      game_fsm.BRANCH_NEW_LOCATIONS_REPEATED: // Use 0xB to store result of prev compare
+        we_regfile = b0;
+        regfile_read_address_b = b1011; // rb = 0xB
+        
+        // wat condition to go to set_new_locations
+        if(regfile_datain[0]){
+          game_fsm.d = game_fsm.SET_NEW_LOCATIONS;
+          }
+        
+        // wat condition to go to dec_mole
+        else {
+          game_fsm.d = game_fsm.DEC_MOLE;
+          }
+          
+      game_fsm.DEC_MOLE:
+        alufn = b000001; // SUB
+        regfile_read_address_a = b0100; // ra = 0x4
+        asel = b00;
+        bsel = b01;
+        we_regfile = b1;
+        regfile_write_address = b0100; // rc = 0x4
+        game_fsm.d = game_fsm.CHECK_MOLE_0;
+      
+      game_fsm.CHECK_MOLE_0:
+        alufn = b110011; // CMPEQ
+        regfile_read_address_b = b0100; // rb = 0x4
+        asel = b01;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_write_address = b1111; // rc = 0xF
+        game_fsm.d = game_fsm.BRANCH_MOLE_0; 
     }
   }
 }
