@@ -32,8 +32,8 @@ module game_CU (
     output decimal_counter_rst
   ) {
 
-    // temp variable to keep track of which temp register to look at for generating moles
-    var i;
+    // temp variables to keep track of which temp registers to look at for generating moles
+    var temp_old, temp_new, mole_iter, temp_reg_cmp;
 
   .clk(clk){
     fsm game_fsm={
@@ -55,6 +55,7 @@ module game_CU (
       BRANCH_SCORE_0,
       SET_LEVEL_1,
       SET_MOLE_TO_LEVEL,
+      INIT_NEW_LOCATIONS,
       CHECK_MOLE_0,
       BRANCH_MOLE_0,
       SET_NEW_LOCATIONS,
@@ -62,8 +63,11 @@ module game_CU (
       BRANCH_NEW_LOCATION_LT_10,
       CHECK_NEW_LOCATIONS_OLD,
       BRANCH_NEW_LOCATIONS_OLD,
-      CHECK_NEW_LOCATIONS_REPEATED,
-      BRANCH_NEW_LOCATIONS_REPEATED,
+      CHECK_NEW_LOCATION_REPEATED_1,
+      BRANCH_NEW_LOCATION_REPEATED_1,
+      CHECK_NEW_LOCATION_REPEATED_2,
+      BRANCH_NEW_LOCATION_REPEATED_2,
+      STORE_NEW_LOCATION,
       DEC_MOLE,
       SET_WHACKED,
       MOLES_APPEAR,
@@ -81,6 +85,7 @@ module game_CU (
       // BRANCH_WHACKED,
       CMP_WHACKED,
       BRANCH_CMP_WHACKED,
+      SAVE_OLD_LOCATIONS,
       INC_SCORE,
       LOSE,
       WIN
@@ -276,17 +281,26 @@ always {
         we_regfile = 1;
         regfile_read_address_b = b0101;   // Current Level reg
         regfile_write_address = b0100;    // Rewrite Number of Moles reg
+        temp_old = b1011; // 0xB
+        temp_new = b1110; // 0xE
+        game_fsm.d = game_fsm.INIT_NEW_LOCATIONS;
+
+      game_fsm.INIT_NEW_LOCATIONS:
+        alufn = b011010; // 'A'
+        asel = b01;
+        we_regfile = b1;
+        regfile_write_address = b0011; // 0x3
+        wdsel = b00;
+        mole_iter = regfile_datain[2]; // Initialise iterator
         game_fsm.d = game_fsm.CHECK_MOLE_0;
 
-
       game_fsm.SET_OLD_LOCATIONS:
-        alufn = b; // ADD
-        regfile_read_address_a = b;
-        bsel = b;
-        asel = b;
-        we_regfile = ;
-        regfile_write_address = b;
-        game_fsm.d = game_fsm. ;
+        alufn = b011010; // 'A'
+        asel = b01;
+        we_regfile = b1;
+        regfile_write_address = b0010;
+        wdsel = b00;
+        game_fsm.d = game_fsm.CHECK_SCORE_30;
         
       // game_fsm.CHECK_WHACKED_LEVEL:
       //   alufn = b110011; // CMPEQ
@@ -318,6 +332,7 @@ always {
         asel = b00;
         bsel = b01;
         we_regfile = 1;
+        wdsel = b00;
         regfile_write_address = b0000; // rc = 0x0
         game_fsm.d = game_fsm.CHECK_SCORE_30;
          
@@ -360,7 +375,7 @@ always {
         }
 
       game_fsm.SAVE_BUTTON_ADDRESS:
-        regfile_write_address = b01110; // 0xE
+        regfile_write_address = b1110; // 0xE
         we_regfile = b1;
         wdsel = b10;
         game_fsm.d = game_fsm.UPDATE_WHACKED;
@@ -370,8 +385,8 @@ always {
         asel = b00;
         bsel = b01;
         we_regfile = b1;
-        regfile_read_address_a = b01110;
-        regfile_write_address = b00110;
+        regfile_read_address_a = b1110;
+        regfile_write_address = b0110;
         wdsel = b00;
         game_fsm.d = game_fsm.IDLE;
           
@@ -398,51 +413,68 @@ always {
           game_fsm.d = game_fsm.CMP_WHACKED;
           }
           
+
       game_fsm.DEC_TIMER:
         alufn = b000001; // SUB
-        regfile_read_address_a = b00111; // 0x7
+        regfile_read_address_a = b0111; // 0x7
         asel = b00;
         bsel = b01;
-        regfile_write_address = b00111; //0x7
+        regfile_write_address = b0111; //0x7
         we_regfile = b1;
         game_fsm.d = game_fsm.IDLE;
           
+
       game_fsm.CMP_WHACKED:
         alufn = b110011; // CMPEQ
         asel = b00;
         bsel = b00;
         we_regfile = b1;
-        regfile_read_address_a = b00110; // 0x6
-        regfile_read_address_b = b00011; // 0x3
-        regfile_write_address = b01111; // 0x4
+        regfile_read_address_a = b0110; // 0x6
+        regfile_read_address_b = b0011; // 0x3
+        regfile_write_address = b1111; // 0x4
         wdsel = b00;
         game_fsm.d = game_fsm.BRANCH_CMP_WHACKED;
 
+
       game_fsm.BRANCH_CMP_WHACKED:
-        regfile_read_address_b = b01111;
+        regfile_read_address_b = b1111;
         we_regfile = b0;
 
         if (regfile_datain[0]) {
-          game_fsm.d = game_fsm.INC_SCORE;
+          game_fsm.d = game_fsm.SAVE_OLD_LOCATIONS;
         } else {
           game_fsm.d = game_fsm.LOSE;
         }
+
+      game_fsm.SAVE_OLD_LOCATIONS:
+        alufn = b000000; // ADD
+        asel = b01;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_read_address_b = b0011; // 0x3
+        regfile_write_address = b0010; // 0x2
+        wdsel = b00;
+        game_fsm.d = INC_SCORE;
+
 
       game_fsm.START_TIMER:
         // JUST START USING THE CODE LMAO
         game_fsm.d = game_fsm.IDLE;
       
+
       game_fsm.MOLES_APPEAR:
-        regfile_read_address_b = b00011; // 0x3
+        regfile_read_address_b = b0011; // 0x3
         we_regfile = b0;
         game_fsm.d = game_fsm.START_TIMER;
           
+
       game_fsm.SET_WHACKED:
         we_regfile = 1;
         regfile_write_address = b0110; // rc = 0x6
         wdsel = b01;
         game_fsm.d = game_fsm.MOLES_APPEAR;
           
+
       game_fsm.BRANCH_MOLE_0:
         regfile_read_address_b = b1111; // 0xF
         we_regfile = 0;
@@ -457,25 +489,39 @@ always {
           game_fsm.d = game_fsm.SET_WHACKED;
           }
           
+
       game_fsm.SET_NEW_LOCATIONS:
         we_regfile = b01;
         wdsel = b01; // Select the random number
-        regfile_write_address = b0011; // rc = 0x3
+        case(mole_iter):
+          1 : 
+            temp_new = b1110; // 0xE
+            temp_old = b1011; // 0xB
+          2 : 
+            temp_new = b1101; // 0xD
+            temp_old = b1010; // 0xA
+          3 : 
+            temp_new = b1100; // 0xC
+            temp_old = b1001; // 0x9
+          default : temp_new = 0;
+        regfile_write_address = temp_new; // rc = 0x3
         game_fsm.d = game_fsm.CHECK_NEW_LOCATIONS_OLD;
           
+
       game_fsm.CHECK_NEW_LOCATIONS_OLD:
         alufn = b110011; // CMPEQ
-        regfile_read_address_a = b1100; // ra = 0xC
-        regfile_read_address_b = b1101; // rb = 0xD
+        regfile_read_address_a = temp_new;
+        regfile_read_address_b = temp_old;
         asel = b00;
         bsel = b00;
         we_regfile = 1;
-        regfile_write_address = b1011; // rc = 0xB
+        regfile_write_address = b1111; // rc = 0xF
         game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_OLD;
           
+
       game_fsm.BRANCH_NEW_LOCATIONS_OLD:
         we_regfile = 0;
-        regfile_read_address_b = b1011; // rb = 0xB
+        regfile_read_address_b = b1111; // rb = 0xF
           
         // new location == old location
         if(regfile_datain[0]){
@@ -484,27 +530,90 @@ always {
           
         // new location != old location
         else {
-          game_fsm.d = game_fsm.CHECK_NEW_LOCATIONS_REPEATED;
+          game_fsm.d = game_fsm.CHECK_NEW_LOCATION_REPEATED_1;
           }
           
-      game_fsm.CHECK_NEW_LOCATIONS_REPEATED:
+
+      // FIGURE THIS ONE OUT!!!
+      game_fsm.CHECK_NEW_LOCATION_REPEATED_1:
+        case(mole_iter):
+          1: temp_reg_cmp = b1101; // 0xD
+          2: temp_reg_cmp = b1100; // 0xC
+          3: temp_reg_cmp = b1110; // 0xE
+          default : temp_reg_cmp = 0;
+
+        alufn = b110011; // CMPEQ
+        asel = b00;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_read_address_a = temp_new;
+        regfile_read_address_b = temp_reg_cmp;
+        regfile_write_address = b1111; // 0xF
+        wdsel = b00;
         // Just use a for/while loop to compare over the locations in the same 16-bit thingy
-        game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_REPEATED;
+        game_fsm.d = game_fsm.BRANCH_NEW_LOCATION_REPEATED_1;
           
-      game_fsm.BRANCH_NEW_LOCATIONS_REPEATED: // Use 0xB to store result of prev compare
+
+      game_fsm.BRANCH_NEW_LOCATION_REPEATED_1: // Use 0xB to store result of prev compare
         we_regfile = 0;
-        regfile_read_address_b = b1011; // rb = 0xB
+        regfile_read_address_b = b1111; // rb = 0xF
         
-        // wat condition to go to set_new_locations
+        // Repeated location found
         if(regfile_datain[0]){
           game_fsm.d = game_fsm.SET_NEW_LOCATIONS;
           }
         
         // wat condition to go to dec_mole
         else {
-          game_fsm.d = game_fsm.DEC_MOLE;
+          game_fsm.d = game_fsm.CHECK_NEW_LOCATION_REPEATED_2;
           }
+
+
+      game_fsm.CHECK_NEW_LOCATION_REPEATED_2:
+        case(mole_iter):
+          1: temp_reg_cmp = b1100; // 0xC
+          2: temp_reg_cmp = b1110; // 0xE
+          3: temp_reg_cmp = b1101; // 0xD
+          default : temp_reg_cmp = 0;
+
+        alufn = b110011; // CMPEQ
+        asel = b00;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_read_address_a = temp_new;
+        regfile_read_address_b = temp_reg_cmp;
+        regfile_write_address = b1111; // 0xF
+        wdsel = b00;
+        // Just use a for/while loop to compare over the locations in the same 16-bit thingy
+        game_fsm.d = game_fsm.BRANCH_NEW_LOCATION_REPEATED_2;
+
+
+      game_fsm.BRANCH_NEW_LOCATION_REPEATED_2:
+        we_regfile = 0;
+        regfile_read_address_b = b1111; // rb = 0xF
+        
+        // Repeated location found
+        if(regfile_datain[0]){
+          game_fsm.d = game_fsm.SET_NEW_LOCATIONS;
+          }
+        
+        // wat condition to go to dec_mole
+        else {
+          game_fsm.d = game_fsm.STORE_NEW_LOCATION;
+          }
+
+      game_fsm.STORE_NEW_LOCATION:
+        alufn = b000000; // add
+        asel = b00;
+        bsel = b00;
+        we_regfile = b1;
+        regfile_read_address_a = temp_new;
+        regfile_read_address_b = b0011; // 0x3
+        regfile_write_address = b0011; // 0x3
+        wdsel = b00;
+        game_fsm.d = game_fsm.DEC_MOLE;
           
+
       game_fsm.DEC_MOLE:
         alufn = b000001; // SUB
         regfile_read_address_a = b0100; // ra = 0x4
@@ -512,8 +621,11 @@ always {
         bsel = b01;
         we_regfile = 1;
         regfile_write_address = b0100; // rc = 0x4
+        wdsel = b00;
+        mole_iter = mole_iter - 1;
         game_fsm.d = game_fsm.CHECK_MOLE_0;
       
+
       game_fsm.CHECK_MOLE_0:
         alufn = b110011; // CMPEQ
         regfile_read_address_b = b0100; // rb = 0x4
@@ -521,6 +633,7 @@ always {
         bsel = b00;
         we_regfile = 1;
         regfile_write_address = b1111; // rc = 0xF
+        wdsel = b00;
         game_fsm.d = game_fsm.BRANCH_MOLE_0; 
     }
   }
