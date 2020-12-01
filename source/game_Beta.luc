@@ -26,24 +26,37 @@ module game_Beta (
   sig inputAlu_a[16];
   sig inputAlu_b[16];
   sig input_pressed_button[16]; // location of pressed button
+  sig random_num[16];
     
   alu16bit game_alu;
     
   .clk(clk){
   edge_detector edge_detector_variableCounter (#RISE(1), #FALL(0));
   edge_detector game_timer_detector(#RISE(1), #FALL(0));
+  edge_detector edge_detector_prng(#RISE(1), #FALL(0));
       
     .rst(rst){
       game_CU game_controlunit;
-      game_Regfiles players;
+      game_Regfiles regfile;
         
       variable_counter vc;
       counter slow_timer(#SIZE(1),#DIV(26));
-        
+
+      dff seed[16];
+
     }
+
+  pn_gen pn_gen;
+
   }  
   
   always {
+    // Get random number generated
+    pn_gen.seed = seed.q;
+    edge_detector_prng.in = slow_timer.value;
+    pn_gen.next = edge_detector_prng.out;
+
+    random_num = (pn_gen.num[16:0] << 12) >> 12;
     
     //edge detectors
     game_timer_detector.in = slow_timer.value; // 30 second timer detector
@@ -53,27 +66,27 @@ module game_Beta (
     game_controlunit.increase_counter = edge_detector_variableCounter.out;
     game_controlunit.decrease_timer = game_timer_detector.out;
     
+  input_pressed_button = b0000000000000001;
+
     // If/else to determine location of pressed button
     if (hole1_button){
-      input_pressed_button = 1;
+      input_pressed_button = input_pressed_button << 1;
     } else if (hole2_button){
-      input_pressed_button = 2;
+      input_pressed_button = input_pressed_button << 2;
     } else if (hole3_button){
-      input_pressed_button = 3;
+      input_pressed_button = input_pressed_button << 3;
     } else if (hole4_button){
-      input_pressed_button = 4;
+      input_pressed_button = input_pressed_button << 4;
     } else if (hole5_button){
-      input_pressed_button = 5;
+      input_pressed_button = input_pressed_button << 5;
     } else if (hole6_button){
-      input_pressed_button = 6;
+      input_pressed_button = input_pressed_button << 6;
     } else if (hole7_button){
-      input_pressed_button = 7;
+      input_pressed_button = input_pressed_button << 7;
     } else if (hole8_button){
-      input_pressed_button = 8;
+      input_pressed_button = input_pressed_button << 8;
     } else if (hole9_button){
-      input_pressed_button = 9;
-    } else {
-      input_pressed_button = 0;
+      input_pressed_button = input_pressed_button << 9;
     }
     
     //output of CU to increase 7segment
@@ -81,20 +94,20 @@ module game_Beta (
     decimal_counter_rst = game_controlunit.decimal_counter_rst;
     
     //Setup REGFILE unit 
-    players.we = game_controlunit.we_regfile;
-    players.write_address = game_controlunit.regfile_write_address;
+    regfile.we = game_controlunit.we_regfile;
+    regfile.write_address = game_controlunit.regfile_write_address;
    
-    players.read_address_a = game_controlunit.regfile_read_address_a;
-    players.read_address_b = game_controlunit.regfile_read_address_b;
+    regfile.read_address_a = game_controlunit.regfile_read_address_a;
+    regfile.read_address_b = game_controlunit.regfile_read_address_b;
     
     //bootstrap reg_b output to CU for convenient branching conditions
-    game_controlunit.regfile_datain = players.out_b;
+    game_controlunit.regfile_datain = regfile.out_b;
 
     //asel mux
     case(game_controlunit.asel){
-      b00  : inputAlu_a = players.out_a;
+      b00  : inputAlu_a = regfile.out_a;
       b01  : inputAlu_a = 0;
-      b10  : inputAlu_a = 1; 
+      // b10  : inputAlu_a = 1; 
       b11  : inputAlu_a = 30;
       default :
           inputAlu_a = 0;
@@ -102,7 +115,7 @@ module game_Beta (
     
     //bsel mux
     case(game_controlunit.bsel){
-      b00 : inputAlu_b = players.out_b;
+      b00 : inputAlu_b = regfile.out_b;
       b01 : inputAlu_b = 1;
       b11 : inputAlu_b = 10;
       b10 : inputAlu_b = 20;
@@ -119,20 +132,21 @@ module game_Beta (
     
     //wdsel mux
     case (game_controlunit.alu_out_sel){
-      b01 : players.data = 0;
-      b10 : players.data = input_pressed_button;
-      b11 : players.data = b1111111111111111;
+      b00 : regfile.data = game_alu.o;
+      b01 : regfile.data = random_num;
+      b10 : regfile.data = input_pressed_button;
+      b11 : regfile.data = b1111111111111111;
       default : //b00
-          players.data = game_alu.o;
+          regfile.data = game_alu.o;
     }
   
   //for debugging
-  //  debug_out[3:0] = players.all_buttons;
-  //  debug_out[7:4] = players.out;    
+  //  debug_out[3:0] = regfile.all_buttons;
+  //  debug_out[7:4] = regfile.out;    
   //  debug_out = game_controlunit.debug;
     
-    debug_out = players.out;
-    total_score = players.all_scores[15:0];
+    debug_out = regfile.out;
+    total_score = regfile.all_scores[15:0];
 
     debug_slowclock = slow_timer.value;
     debug_vcclock = vc.out;
