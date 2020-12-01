@@ -95,6 +95,8 @@ module game_Beta (
       input_pressed_button = input_pressed_button << 8;
     } else if (hole9_button){
       input_pressed_button = input_pressed_button << 9;
+    } else {
+      input_pressed_button = 0;
     }
     
     //output of CU to increase 7segment
@@ -139,7 +141,7 @@ module game_Beta (
    
     
     //wdsel mux
-    case (game_controlunit.alu_out_sel){
+    case (game_controlunit.wdsel){
       b00 : regfile.data = game_alu.o;
       b01 : regfile.data = random_num;
       b10 : regfile.data = input_pressed_button;
