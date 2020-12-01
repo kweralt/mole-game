@@ -3,12 +3,21 @@ module au_top (
     input rst_n,            // reset button (active low)
     output led [8],         // 8 user controllable LEDs
     input usb_rx,           // USB->Serial input
-    output usb_tx,           // USB->Serial output
+    output usb_tx,          // USB->Serial output
     output io_led [3][8],   // LEDS on IO Shield
     output io_seg [8],      // 7-segment LEDs on IO Shield
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
-    input io_dip [3][8]     // DIP switches on IO Shield
+    input io_dip [3][8],    // DIP switches on IO Shield
+    input hole1_button,
+    input hole2_button,
+    input hole3_button,
+    input hole4_button,
+    input hole5_button,
+    input hole6_button,
+    input hole7_button,
+    input hole8_button,
+    input hole9_button
   ) {
   
   sig rst;                  // reset signal
@@ -17,8 +26,27 @@ module au_top (
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
-    button_conditioner button_cond;
-    edge_detector edge (#RISE(1), #FALL(0));
+    
+    edge_detector edge_hole1_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole2_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole3_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole4_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole5_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole6_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole7_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole8_button (#RISE(1), #FALL(0));
+    edge_detector edge_hole9_button (#RISE(1), #FALL(0));
+    
+    button_conditioner btn_cond_hole1;
+    button_conditioner btn_cond_hole2;
+    button_conditioner btn_cond_hole3;
+    button_conditioner btn_cond_hole4;
+    button_conditioner btn_cond_hole5;
+    button_conditioner btn_cond_hole6;
+    button_conditioner btn_cond_hole7;
+    button_conditioner btn_cond_hole8;
+    button_conditioner btn_cond_hole9;
+    
     multi_dec_ctr dec_ctr;
     
     .rst(rst) {
@@ -39,12 +67,47 @@ module au_top (
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
     
-    button_cond.in = io_button[4]; // reduce bouncing effects of button
-    edge.in = button_cond.out;     // get the edge of button press
+
+    btn_cond_hole1.in = hole1_button;
+    edge_hole1_button.in = btn_cond_hole1.out;
+
+    btn_cond_hole2.in = hole2_button;
+    edge_hole2_button.in = btn_cond_hole2.out; 
     
-    gameMachine.players_mole_buttons = edge.out;
+    btn_cond_hole3.in = hole3_button;
+    edge_hole3_button.in = btn_cond_hole3.out; 
+        
+    btn_cond_hole4.in = hole4_button;
+    edge_hole4_button.in = btn_cond_hole4.out;
+
+    btn_cond_hole5.in = hole5_button;
+    edge_hole5_button.in = btn_cond_hole5.out; 
+    
+    btn_cond_hole6.in = hole6_button;
+    edge_hole6_button.in = btn_cond_hole6.out; 
+    
+    btn_cond_hole7.in = hole7_button;
+    edge_hole7_button.in = btn_cond_hole7.out;
+
+    btn_cond_hole8.in = hole8_button;
+    edge_hole8_button.in = btn_cond_hole8.out; 
+    
+    btn_cond_hole9.in = hole9_button;
+    edge_hole9_button.in = btn_cond_hole9.out;  
+       
+    gameMachine.hole1_button = edge_hole1_button.out;
+    gameMachine.hole2_button = edge_hole2_button.out;
+    gameMachine.hole3_button = edge_hole3_button.out;
+    gameMachine.hole4_button = edge_hole4_button.out;
+    gameMachine.hole5_button = edge_hole5_button.out;
+    gameMachine.hole6_button = edge_hole6_button.out;
+    gameMachine.hole7_button = edge_hole7_button.out;
+    gameMachine.hole8_button = edge_hole8_button.out;
+    gameMachine.hole9_button = edge_hole9_button.out;
     
     // show score value at led
+    io_led[2] = gameMachine.debug_out;
+    io_led[0] = gameMachine.total_score;
     led[0] = gameMachine.debug_slowclock;
     led[1] = gameMachine.debug_vcclock;
     
