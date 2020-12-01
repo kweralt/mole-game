@@ -86,62 +86,194 @@ always {
     decimal_counter_rst = 0;
     
     if (rst){
-        game_fsm.d = game_fsm.START_SET_TIMER;
-        decimal_counter_rst = 1;
+        game_fsm.d = game_fsm.INIT;
+        //decimal_counter_rst = 1;
     }
 
     else {
 
     case (game_fsm.q) {
       game_fsm.INIT:
-        // set output and next state
-        alufn = b; // ADD
-        regfile_read_address_a = b;
-        bsel = b;
-        asel = b;
-        we_regfile = ;
-        regfile_write_address = b;
-        game_fsm.d = game_fsm. ;
+        // where's our start button?
+        if (rst) {
+          game_fsm.d = game_fsm.SET_SCORE_0;
+          }
+        else {
+          game_fsm.d = game_fsm.INIT;
+          }
 
       game_fsm.SET_SCORE_0:
-        alufn = b; // ADD
-        regfile_read_address_a = b;
-        bsel = b;
-        asel = b;
-        we_regfile = ;
-        regfile_write_address = b;
-        game_fsm.d = game_fsm. ;
+        we_regfile = 1;
+        regfile_write_address = b0000;    // Rewrite Score reg
+        alu_out_sel = b01;
+        game_fsm.d = game_fsm.SET_OLD_LOCATIONS;
 
       game_fsm.SET_OLD_LOCATIONS:
-        alufn = b; // ADD
-        regfile_read_address_a = b;
-        bsel = b;
-        asel = b;
-        we_regfile = ;
-        regfile_write_address = b;
-        game_fsm.d = game_fsm. ;
+        we_regfile = 1;
+        regfile_write_address = b0010;    // Rewrite Mole Old Locations reg
+        alu_out_sel = b01;
+        game_fsm.d = game_fsm.CHECK_SCORE_30;
+          
+      game_fsm.CHECK_SCORE_30:
+        alufn = b100100;                  // CMPEQ
+        asel = b11;                       // Constant 30
+        bsel = b00;
+        we_regfile = 1;
+        regfile_read_address_b = b0000;   // Score reg
+        regfile_write_address = b1111;    // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_30;
+          
+      game_fsm.BRANCH_SCORE_30:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.WIN;
+          }
+        else {
+          game_fsm.d = game_fsm.CHECK_SCORE_LT_10;
+          }
+          
+      game_fsm.CHECK_SCORE_LT_10:
+        alufn = b100101;                 // CMPLT
+        asel = b00;
+        bsel = b11;                      // Constant 10
+        we_regfile = 1;
+        regfile_read_address_a = b0000;  // Score reg
+        regfile_write_address = b1111;   // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_LT_10;
+          
+      game_fsm.BRANCH_SCORE_LT_10:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.CHECK_SCORE_LT_20;
+          }
+        else {
+          game_fsm.d = game_fsm.CHECK_SCORE_0;
+          }
+          
+      game_fsm.CHECK_SCORE_0:
+        alufn = b100100;                  // CMPEQ
+        asel = b01;
+        bsel = b00;
+        we_regfile = 1;
+        regfile_read_address_b = b0000;   // Score reg
+        regfile_write_address = b1111;    // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_0;
+          
+      game_fsm.BRANCH_SCORE_0:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.SET_LEVEL_1;
+          }
+        else {
+          game_fsm.d = game_fsm.SET_MOLE_TO_LEVEL;
+          }
+          
+      game_fsm.SET_LEVEL_1:
+        alufn = b100000;                  // ADD
+        asel = b10;
+        bsel = b00;
+        we_regfile = 1;
+        regfile_read_address_b = b0000;   // Score reg
+        regfile_write_address = b0101;    // Current Level reg
+        game_fsm.d = game_fsm.SET_MOLE_TO_LEVEL;
+          
+      game_fsm.CHECK_SCORE_LT_20:
+        alufn = b100101;                  // CMPLT
+        asel = b00;
+        bsel = b10;                       // Constant 20
+        we_regfile = 1;
+        regfile_read_address_a = b0000;   // Score reg
+        regfile_write_address = b1111;    // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_LT_20;
+          
+      game_fsm.BRANCH_SCORE_LT_20:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.CHECK_SCORE_20;
+          }
+        else {
+          game_fsm.d = game_fsm.CHECK_SCORE_10;
+          }
+          
+      game_fsm.CHECK_SCORE_10:
+        alufn = b100100;                  // CMPEQ
+        asel = b00;
+        bsel = b11;                       // Constant 10
+        we_regfile = 1;
+        regfile_read_address_a = b0000;   // Score reg
+        regfile_write_address = b1111;    // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_10;
+          
+      game_fsm.BRANCH_SCORE_10:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.INC_LEVEL;
+          }
+        else {
+          game_fsm.d = game_fsm.SET_MOLE_TO_LEVEL;
+          }
+          
+      game_fsm.CHECK_SCORE_20:
+        alufn = b100100;                  // CMPEQ
+        asel = b00;
+        bsel = b10;                       // Constant 20
+        we_regfile = 1;
+        regfile_read_address_a = b0000;   // Score reg
+        regfile_write_address = b1111;    // Rewrite Temp reg 0xF
+        game_fsm.d = game_fsm.BRANCH_SCORE_20;
+          
+      game_fsm.BRANCH_SCORE_20:
+        regfile_read_address_b = b1111;   // Temp reg 0xF
+        if (regfile_datain[0]) {
+          we_regfile = 0;
+          regfile_read_address_b = b1111; // Rewrite Temp reg 0xF
+          game_fsm.d = game_fsm.INC_LEVEL;
+          }
+        else {
+          game_fsm.d = game_fsm.SET_MOLE_TO_LEVEL;
+          }
+          
+      game_fsm.INC_LEVEL:
+        alufn = b100000;                  // ADD
+        asel = b10;                       // Constant 1
+        bsel = b00;
+        we_regfile = 1;
+        regfile_read_address_b = b0101;   // Current Level reg
+        regfile_write_address = b0101;    // Rewrite Current Level reg
+        game_fsm.d = game_fsm.SET_MOLE_TO_LEVEL;
+          
+      game_fsm.SET_MOLE_TO_LEVEL:
+        alufn = b100000;                  // ADD
+        asel = b01;                       // Constant 0
+        bsel = b00;
+        we_regfile = 1;
+        regfile_read_address_b = b0101;   // Current Level reg
+        regfile_write_address = b0100;    // Rewrite Number of Moles reg
+        game_fsm.d = game_fsm.CHECK_MOLE_0;
 
-      game_fsm.SET_OLD_LOCATIONS:
-        alufn = b; // ADD
-        regfile_read_address_a = b;
-        bsel = b;
-        asel = b;
-        we_regfile = ;
-        regfile_write_address = b;
-        game_fsm.d = game_fsm. ;
-        
+
       game_fsm.CHECK_WHACKED_LEVEL:
         alufn = b110011; // CMPEQ
         regfile_read_address_a = b0110; // ra = 0x6
         regfile_read_address_b = b0101; // rb = 0x5
         asel = b00;
         bsel = b00;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b1110;  // rc = 0xE
         game_fsm.d = game_fsm.BRANCH_WHACKED;
         
       game_fsm.BRANCH_WHACKED:
-        we_regfile = b0;
+        we_regfile = 0;
         regfile_read_address_b = b1110; // rb = 0xE
           
         // whacked == level
@@ -159,7 +291,7 @@ always {
         regfile_read_address_a = b0000; // ra = 0x0
         asel = b00;
         bsel = b01;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b0000; // rc = 0x0
         game_fsm.d = game_fsm.CHECK_SCORE_30;
          
@@ -168,7 +300,7 @@ always {
         game_fsm.d = game_fsm.BRANCH_BUTTON_ADDRESS;
           
       game_fsm.BRANCH_BUTTON_ADDRESS:
-        we_regfile = b0;
+        we_regfile = 0;
         regfile_read_address_b = b1110;
           
         // go to whacked += 1  
@@ -186,29 +318,34 @@ always {
         regfile_read_address_b = b0110; // rb = 0x6
         asel = b10;
         bsel = b00;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b0110; // rc = 0x6
         game_fsm.d = game_fsm.CHECK_WHACKED_LEVEL;
       
-      game_fsm.LOSE:
+      //game_fsm.LOSE:
         // what signal here?
         
           
       game_fsm.IDLE:
         // what if else condition to go to CHECK_BUTTON_ADDRESS/CHECK_TIMER_MT_0
-          
+          if(decrease_timer){
+            game_fsm.d = game_fsm.CHECK_TIMER_MT_0;
+          }
+          if(pressed_button){
+            game_fsm.d = game_fsm.CHECK_BUTTON_ADDRESS;
+          }
       game_fsm.CHECK_TIMER_MT_0:
         alufn = b110101; // CMPLT
         regfile_read_address_b = b0111; // 0x7
         asel = b01;
         bsel = b00;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b1111; // 0xF
         game_fsm.d = game_fsm.BRANCH_TIMER;
           
       game_fsm.BRANCH_TIMER:
         regfile_read_address_b = b1111; // 0xF
-        we_regfile = b0;
+        we_regfile = 0;
         
         // timer > 0
         if(regfile_datain[0]){
@@ -226,7 +363,7 @@ always {
         asel = b00;
         bsel = b01;
         regfile_write_address = b0111; //0x7
-        we_regfile = b1;
+        we_regfile = 1;
         game_fsm.d = game_fsm.IDLE;
           
       game_fsm.START_TIMER:
@@ -238,14 +375,14 @@ always {
         game_fsm.d = game_fsm.START_TIMER;
           
       game_fsm.SET_WHACKED:
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b0110; // rc = 0x6
         alu_out_sel = b01;
         game_fsm.d = game_fsm.MOLES_APPEAR;
           
       game_fsm.BRANCH_MOLE_0:
         regfile_read_address_b = b1111; // 0xF
-        we_regfile = b0;
+        we_regfile = 0;
         
         // moles > 0
         if(regfile_datain[0]){
@@ -271,12 +408,12 @@ always {
         regfile_read_address_b = b1101; // rb = 0xD
         asel = b00;
         bsel = b00;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b1011; // rc = 0xB
         game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_OLD;
           
       game_fsm.BRANCH_NEW_LOCATIONS_OLD:
-        we_regfile = b0;
+        we_regfile = 0;
         regfile_read_address_b = b1011; // rb = 0xB
           
         // new location == old location
@@ -294,7 +431,7 @@ always {
         game_fsm.d = game_fsm.BRANCH_NEW_LOCATIONS_REPEATED;
           
       game_fsm.BRANCH_NEW_LOCATIONS_REPEATED: // Use 0xB to store result of prev compare
-        we_regfile = b0;
+        we_regfile = 0;
         regfile_read_address_b = b1011; // rb = 0xB
         
         // wat condition to go to set_new_locations
@@ -312,7 +449,7 @@ always {
         regfile_read_address_a = b0100; // ra = 0x4
         asel = b00;
         bsel = b01;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b0100; // rc = 0x4
         game_fsm.d = game_fsm.CHECK_MOLE_0;
       
@@ -321,7 +458,7 @@ always {
         regfile_read_address_b = b0100; // rb = 0x4
         asel = b01;
         bsel = b00;
-        we_regfile = b1;
+        we_regfile = 1;
         regfile_write_address = b1111; // rc = 0xF
         game_fsm.d = game_fsm.BRANCH_MOLE_0; 
     }
