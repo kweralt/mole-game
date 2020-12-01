@@ -57,7 +57,15 @@ module game_Beta (
     pn_gen.next = edge_detector_prng.out;
 
     random_num = (pn_gen.num[16:0] << 12) >> 12;
+
+    // Get modulo if random_num is greater than 10
+    if (random_num >= 10) {
+      random_num = 15 - random_num;
+    } else if (random_num == 0) {
+      random_num = 1;
+    }
     
+
     //edge detectors
     game_timer_detector.in = slow_timer.value; // 30 second timer detector
     edge_detector_variableCounter.in = vc.out; // random counter increase signal 
