@@ -5,6 +5,17 @@ module game_CU (
     input decrease_timer,
     input regfile_datain[16], //direct reading of regfile data from read_address_b
     
+    // inputs from each button
+    input hole1_button,
+    input hole2_button,
+    input hole3_button,
+    input hole4_button,
+    input hole5_button,
+    input hole6_button,
+    input hole7_button,
+    input hole8_button,
+    input hole9_button,
+    
     // input mole_buttons
     input pressed_button[16],
     // get ~pressed_button[16]
@@ -59,11 +70,15 @@ module game_CU (
       CHECK_TIMER_MT_0,
       BRANCH_TIMER,
       DEC_TIMER,
+      SAVE_BUTTON_ADDRESS,
+      UPDATE_WHACKED,
       CHECK_BUTTON_ADDRESS,
       BRANCH_BUTTON_ADDRESS,
       INC_WHACKED,
       CHECK_WHACKED_LEVEL,
       BRANCH_WHACKED,
+      CMP_WHACKED,
+      BRANCH_CMP_WHACKED,
       INC_SCORE,
       LOSE,
       WIN
@@ -72,7 +87,7 @@ module game_CU (
 
 always {
 
-    // standard setting unles overwritten by each case
+    // standard setting unless overwritten by each case
     alufn = 0;
     asel = 0; 
     bsel = 0;
@@ -322,16 +337,17 @@ always {
         regfile_write_address = b0110; // rc = 0x6
         game_fsm.d = game_fsm.CHECK_WHACKED_LEVEL;
       
-      //game_fsm.LOSE:
+      game_fsm.LOSE:
         // what signal here?
         
           
       game_fsm.IDLE:
-        // what if else condition to go to CHECK_BUTTON_ADDRESS/CHECK_TIMER_MT_0
+         // what if else condition to go to CHECK_BUTTON_ADDRESS/CHECK_TIMER_MT_0
           if(decrease_timer){
             game_fsm.d = game_fsm.CHECK_TIMER_MT_0;
           }
-          if(pressed_button){
+          if(((pressed_button-1) & pressed_button == 0)&&(pressed_button != 0)){
+            // check if any bit is 1
             game_fsm.d = game_fsm.CHECK_BUTTON_ADDRESS;
           }
       game_fsm.CHECK_TIMER_MT_0:
