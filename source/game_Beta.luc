@@ -51,7 +51,9 @@ module game_Beta (
   }  
   
   always {
+    
     // Get random number generated
+    pn_gen.rst = rst; 
     pn_gen.seed = seed.q;
     edge_detector_prng.in = slow_timer.value;
     pn_gen.next = edge_detector_prng.out;
@@ -66,7 +68,18 @@ module game_Beta (
     game_controlunit.increase_counter = edge_detector_variableCounter.out;
     game_controlunit.decrease_timer = game_timer_detector.out;
     
-  input_pressed_button = b0000000000000001;
+    game_controlunit.hole1_button = hole1_button;
+    game_controlunit.hole2_button = hole2_button; 
+    game_controlunit.hole3_button = hole3_button;
+    game_controlunit.hole4_button = hole4_button; 
+    game_controlunit.hole5_button = hole5_button;
+    game_controlunit.hole6_button = hole6_button; 
+    game_controlunit.hole7_button = hole7_button;
+    game_controlunit.hole8_button = hole8_button; 
+    game_controlunit.hole9_button = hole9_button;
+    
+    input_pressed_button = b0000000000000001;
+    game_controlunit.pressed_button = input_pressed_button;
 
     // If/else to determine location of pressed button
     if (hole1_button){
