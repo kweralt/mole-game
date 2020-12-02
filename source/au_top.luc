@@ -9,6 +9,7 @@ module au_top (
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
     input io_dip [3][8],    // DIP switches on IO Shield
+    
     input hole1_button,
     input hole2_button,
     input hole3_button,
@@ -17,14 +18,22 @@ module au_top (
     input hole6_button,
     input hole7_button,
     input hole8_button,
-    input hole9_button
+    input hole9_button,
+    
+    output green[9],
+    output red[9]
+
   ) {
   
   sig rst;                  // reset signal
+  sig random_num[16];
   
   .clk(clk) {
-    // The reset conditioner is used to synchronize the reset signal to the FPGA
-    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    .rst(rst) {
+      multi_seven_seg seg;
+      game_Beta gameMachine;
+    }
+
     reset_conditioner reset_cond;
     
     edge_detector edge_hole1_button (#RISE(1), #FALL(0));
@@ -48,11 +57,6 @@ module au_top (
     button_conditioner btn_cond_hole9;
     
     multi_dec_ctr dec_ctr;
-    
-    .rst(rst) {
-      multi_seven_seg seg;
-      game_Beta gameMachine;
-    }
   }
   
   always {
@@ -66,7 +70,6 @@ module au_top (
     io_led = 3x{{8h00}};    // turn LEDs off
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
-    
 
     btn_cond_hole1.in = hole1_button;
     edge_hole1_button.in = btn_cond_hole1.out;
@@ -104,12 +107,8 @@ module au_top (
     gameMachine.hole7_button = edge_hole7_button.out;
     gameMachine.hole8_button = edge_hole8_button.out;
     gameMachine.hole9_button = edge_hole9_button.out;
-    
-    // show score value at led
-    io_led[2] = gameMachine.debug_out;
-    io_led[0] = gameMachine.total_score;
-    led[0] = gameMachine.debug_slowclock;
-    led[1] = gameMachine.debug_vcclock;
+    green = gameMachine.random_num[8-:9];
+    red = ~gameMachine.random_num[8-:9];
     
     // update 7 seg
     dec_ctr.inc = gameMachine.decimal_counter_increase;
@@ -118,5 +117,25 @@ module au_top (
     io_seg = ~seg.seg;
     io_sel = ~seg.sel;
     
+    green[0] = 1;
+    green[1] = 1;
+    green[2] = 1;
+    green[3] = 0;
+    green[4] = 0;
+    green[5] = 0;
+    green[6] = 0;
+    green[7] = 0;
+    green[8] = 0;
+    
+    red[0] = 0;
+    red[1] = 0;
+    red[2] = 0;
+    red[3] = 0;
+    red[4] = 0;
+    red[5] = 0;
+    red[6] = 1;
+    red[7] = 1;
+    red[8] = 1;
+
   }
 }
