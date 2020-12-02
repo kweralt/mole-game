@@ -6,7 +6,6 @@ module game_Regfiles (
     input we, // write enable
     input data[16], // data in
     
-    
     input read_address_a[4], //address port a 
     input read_address_b[4], //address port b
     output out_a[16], //read port a
@@ -14,8 +13,8 @@ module game_Regfiles (
     
     //debug
     output out[16],
-    output all_scores[32],
-    output all_buttons[4],
+    output all_scores[16],
+    output all_buttons[9],
     output counter_out[16]
 
   ) 
@@ -24,7 +23,7 @@ module game_Regfiles (
   .clk(clk){
     .rst(rst){
       dff score[16]; //0x0
-      dff mole_buttons[16]; //0x1
+      dff mole_buttons[16]; //0x1 only use 9 bits to check 9 buttons
       dff mole_old_locations[16]; //0x2
       dff mole_new_locations[16]; //0x3
       dff number_of_moles[16]; //0x4
@@ -83,9 +82,17 @@ module game_Regfiles (
     
     //For debugging
     all_scores[15:0] = score.q;
-    //all_scores[31:16] = p2_score.q;
-    all_buttons[1:0] = mole_buttons.q[1:0];
-    all_buttons[3:2] = mole_buttons.q[3:2];
+    
+    all_buttons[0] = mole_buttons.q[0];
+    all_buttons[1] = mole_buttons.q[1];
+    all_buttons[2] = mole_buttons.q[2];
+    all_buttons[3] = mole_buttons.q[3];
+    all_buttons[4] = mole_buttons.q[4];
+    all_buttons[5] = mole_buttons.q[5];
+    all_buttons[6] = mole_buttons.q[6];
+    all_buttons[7] = mole_buttons.q[7];
+    all_buttons[8] = mole_buttons.q[8];
+
     out = timer.q;
     counter_out = state_of_moles.q;
   }
