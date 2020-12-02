@@ -12,12 +12,13 @@ module game_Beta (
     input hole7_button,
     input hole8_button,
     input hole9_button,
-    
+
     output debug_out[16],
-    output total_score[16], // p1_out
+    output score_out[16],
     output debug_slowclock,
     output debug_vcclock,
-    
+    output random_num[9],
+
     output decimal_counter_increase,
     output decimal_counter_rst
   ) {
@@ -26,48 +27,39 @@ module game_Beta (
   sig inputAlu_a[16];
   sig inputAlu_b[16];
   sig input_pressed_button[16]; // location of pressed button
-  sig random_num[16];
-    
+  //sig random_num[16];
+
   alu16bit game_alu;
-    
+
   .clk(clk){
-  edge_detector edge_detector_variableCounter (#RISE(1), #FALL(0));
-  edge_detector game_timer_detector(#RISE(1), #FALL(0));
-  edge_detector edge_detector_prng(#RISE(1), #FALL(0));
-      
+    edge_detector edge_detector_variableCounter (#RISE(1), #FALL(0));
+    edge_detector game_timer_detector(#RISE(1), #FALL(0));
+    edge_detector edge_detector_prng(#RISE(1), #FALL(0));
+
     .rst(rst){
       game_CU game_controlunit;
       game_Regfiles regfile;
-        
+      pn_gen pn_gen;
       variable_counter vc;
       counter slow_timer(#SIZE(1),#DIV(26));
 
       dff seed[16];
 
     }
-
-  pn_gen pn_gen;
-
+    
   }  
-  
+
   always {
     
     // Get random number generated
-    pn_gen.rst = rst; 
+    
     pn_gen.seed = seed.q;
     edge_detector_prng.in = slow_timer.value;
     pn_gen.next = edge_detector_prng.out;
 
-    random_num = (pn_gen.num[16:0] << 12) >> 12;
-
-    // Get modulo if random_num is greater than 10
-    if (random_num >= 10) {
-      random_num = 15 - random_num;
-    } else if (random_num == 0) {
-      random_num = 1;
-    }
+    //random_num = (pn_gen.num[16:0] << 12) >> 12;
+    random_num = pn_gen.num;
     
-
     //edge detectors
     game_timer_detector.in = slow_timer.value; // 30 second timer detector
     edge_detector_variableCounter.in = vc.out; // random counter increase signal 
@@ -76,15 +68,15 @@ module game_Beta (
     game_controlunit.increase_counter = edge_detector_variableCounter.out;
     game_controlunit.decrease_timer = game_timer_detector.out;
     
-    game_controlunit.hole1_button = hole1_button;
-    game_controlunit.hole2_button = hole2_button; 
-    game_controlunit.hole3_button = hole3_button;
-    game_controlunit.hole4_button = hole4_button; 
-    game_controlunit.hole5_button = hole5_button;
-    game_controlunit.hole6_button = hole6_button; 
-    game_controlunit.hole7_button = hole7_button;
-    game_controlunit.hole8_button = hole8_button; 
-    game_controlunit.hole9_button = hole9_button;
+    game_controlunit.pressed_button = hole1_button;
+    game_controlunit.pressed_button = hole2_button; 
+    game_controlunit.pressed_button = hole3_button;
+    game_controlunit.pressed_button = hole4_button; 
+    game_controlunit.pressed_button = hole5_button;
+    game_controlunit.pressed_button = hole6_button; 
+    game_controlunit.pressed_button = hole7_button;
+    game_controlunit.pressed_button = hole8_button; 
+    game_controlunit.pressed_button = hole9_button;
     
     input_pressed_button = b0000000000000001;
     game_controlunit.pressed_button = input_pressed_button;
@@ -108,24 +100,22 @@ module game_Beta (
       input_pressed_button = input_pressed_button << 8;
     } else if (hole9_button){
       input_pressed_button = input_pressed_button << 9;
-    } else {
-      input_pressed_button = 0;
     }
-    
+
     //output of CU to increase 7segment
     decimal_counter_increase = game_controlunit.decimal_counter_increase;
     decimal_counter_rst = game_controlunit.decimal_counter_rst;
-    
+
     //Setup REGFILE unit 
     regfile.we = game_controlunit.we_regfile;
     regfile.write_address = game_controlunit.regfile_write_address;
-   
+
     regfile.read_address_a = game_controlunit.regfile_read_address_a;
     regfile.read_address_b = game_controlunit.regfile_read_address_b;
-    
+
     //bootstrap reg_b output to CU for convenient branching conditions
     game_controlunit.regfile_datain = regfile.out_b;
-
+    
     //asel mux
     case(game_controlunit.asel){
       b00  : inputAlu_a = regfile.out_a;
@@ -156,21 +146,15 @@ module game_Beta (
     //wdsel mux
     case (game_controlunit.wdsel){
       b00 : regfile.data = game_alu.o;
-      b01 : regfile.data = random_num;
+      b01 : regfile.data = 0;
       b10 : regfile.data = input_pressed_button;
       b11 : regfile.data = b1111111111111111;
       default : //b00
           regfile.data = game_alu.o;
     }
-  
-  //for debugging
-  //  debug_out[3:0] = regfile.all_buttons;
-  //  debug_out[7:4] = regfile.out;    
-  //  debug_out = game_controlunit.debug;
     
     debug_out = regfile.out;
-    total_score = regfile.all_scores[15:0];
-
+    score_out = regfile.all_scores[15:0];
     debug_slowclock = slow_timer.value;
     debug_vcclock = vc.out;
     
